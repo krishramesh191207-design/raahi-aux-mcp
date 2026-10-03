@@ -92,7 +92,7 @@ SHIPMENT_STATES = [
 # In-memory tables
 # ---------------------------------------------------------------------------
 
-_store: dict[str, dict[str, Any]] = {
+_store: dict[str, Any] = {
     "applicants": {DEMO_APPLICANT_ID: dict(_DEMO_APPLICANT_SEED)},
     "consents": {},
     "payments": {},
@@ -101,6 +101,17 @@ _store: dict[str, dict[str, Any]] = {
     "bank_letter_requests": {},
     "shipments": {},
     "audit_log": [],
+    # Mock connector stores
+    "whatsapp_messages": [],       # whatsapp_raahi mock
+    "aa_consents": {},             # banking_aa mock
+    "aa_sessions": {},             # banking_aa mock
+    "gnani_calls": {},             # mcp_raahi_gnani mock
+    "gnani_transcriptions": {},    # mcp_raahi_gnani mock
+    "pl_orders": {},               # pinelabs_plural mock
+    "acko_policies": {},           # acko_insurance mock
+    "identity_verifications": {},  # pine_labs_identity mock
+    "delhivery_pickups": {},       # delhivery_shipment mock
+    "delhivery_tracks": {},        # delhivery_shipment mock
 }
 
 _VERBOSE = os.environ.get("DEMO_PERSISTENCE", "").lower() == "true"
@@ -321,10 +332,20 @@ def get_audit_log(applicant_id: str | None = None) -> list[dict[str, Any]]:
 
 def reset_demo(applicant_id: str | None = None) -> None:
     aid = applicant_id or DEMO_APPLICANT_ID
-    for table in ("consents", "payments", "esign_transactions", "insurance_policies", "bank_letter_requests", "shipments"):
-        keys_to_remove = [k for k, v in _store[table].items() if isinstance(v, dict) and v.get("applicant_id") == aid]
-        for k in keys_to_remove:
-            del _store[table][k]
+    mock_tables = (
+        "consents", "payments", "esign_transactions", "insurance_policies",
+        "bank_letter_requests", "shipments",
+        "aa_consents", "aa_sessions", "gnani_calls", "gnani_transcriptions",
+        "pl_orders", "acko_policies", "identity_verifications",
+        "delhivery_pickups", "delhivery_tracks",
+    )
+    for table in mock_tables:
+        t = _store[table]
+        if isinstance(t, dict):
+            keys_to_remove = [k for k, v in t.items() if isinstance(v, dict) and v.get("applicant_id") == aid]
+            for k in keys_to_remove:
+                del t[k]
+    _store["whatsapp_messages"] = [m for m in _store["whatsapp_messages"] if m.get("applicant_id") != aid]
     _store["applicants"][aid] = dict(_DEMO_APPLICANT_SEED)
     _log(f"demo reset for {aid}")
 
