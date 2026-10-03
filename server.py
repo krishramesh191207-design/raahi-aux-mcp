@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -36,6 +37,18 @@ mcp = MCPServer(
         "NONE of these tools call real government, bank, or insurance services."
     ),
     version="1.0.0",
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=[
+            "raahi-auxiliary-mcp.onrender.com",
+            "localhost:*",
+            "127.0.0.1:*",
+        ],
+        allowed_origins=[
+            "https://raahi-auxiliary-mcp.onrender.com",
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+        ],
+    ),
 )
 
 
