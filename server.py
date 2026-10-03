@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from mcp.server.mcpserver import MCPServer
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -778,6 +779,19 @@ def build_app() -> Starlette:
         streamable_http_path="/mcp",
         stateless_http=True,
         json_response=True,
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=False,
+            allowed_hosts=[
+                "raahi-auxiliary-mcp.onrender.com",
+                "localhost:*",
+                "127.0.0.1:*",
+            ],
+            allowed_origins=[
+                "https://raahi-auxiliary-mcp.onrender.com",
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+            ],
+        ),
     )
 
     # Merge the /health route into the MCP app's router

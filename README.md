@@ -6,14 +6,11 @@ MCP endpoint: `/mcp` · Health: `/health`
 
 ## What this is
 
-Raahi's AgenticOrg environment already has native connectors for:
-- `banking_aa` — real Account Aggregator
-- `pinelabs_plural` — real Pine Labs payment/order
-- `whatsapp_raahi` — WhatsApp messaging
-- `mcp_raahi_gnani` — Gnani voice
-- `mcp_delhivery_maps_krishramesh` — Delhivery logistics/maps
-
-This MCP is the **auxiliary / sandbox rail** — it provides mock implementations of capabilities that are missing, unavailable, or need a demo wrapper:
+This MCP is the **only connector intended for the Raahi demo agents**. It provides the
+complete auxiliary / sandbox rail, including mock identity, payments, insurance,
+banking-consent, voice, WhatsApp, and logistics capabilities. AgenticOrg agents
+should authorize `mcp_raahi_auxiliary_mcp` only; native Banking AA, Pine Labs,
+WhatsApp, Gnani, and Delhivery connectors are not required for this workflow.
 
 | Tool | Provider label | Covers |
 |---|---|---|
@@ -34,6 +31,17 @@ This MCP is the **auxiliary / sandbox rail** — it provides mock implementation
 | `get_demo_case` | `raahi_demo_store` | Full demo state snapshot |
 | `reset_demo_case` | `raahi_demo_store` | Reset demo to initial seed |
 | `get_audit_log` | `raahi_demo_store` | Sanitized audit events |
+
+The server also exposes the expanded auxiliary operations:
+`wa_send_message`, `wa_send_template`, `wa_get_message_status`,
+`aa_request_consent`, `aa_get_consent_status`, `aa_fetch_bank_data`,
+`gnani_transcribe_speech`, `gnani_speak_reply`, `gnani_call_bank_rm`,
+`gnani_read_call_outcome`, `gnani_navigate_ivr`, `gnani_pull_case_status`,
+`pl_create_order`, `pl_get_order_status`, `pl_refund_order`,
+`acko_get_quote`, `acko_issue_policy`, `acko_get_policy`, `pli_verify_pan`,
+`pli_fetch_digilocker_doc`, `pli_esign_document`,
+`delhivery_check_serviceability`, `delhivery_schedule_pickup`, and
+`delhivery_track_shipment`.
 
 Every response includes `"mode": "mock"` and a `"provider"` label. No tool calls any real government, bank, insurance, or payment service.
 
