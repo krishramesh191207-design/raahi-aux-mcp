@@ -416,16 +416,19 @@ async def aa_get_consent_status(
         "DEMO/MOCK ONLY. Simulates fetching bank transaction data after AA consent is approved. "
         "Returns fixed mock accounts, transactions, and income/spend signals. "
         "Does NOT constitute a bank-issued document. "
-        "AA data must NEVER be silently converted into a bank letter."
+        "AA data must NEVER be silently converted into a bank letter. "
+        "Set simulate_low_balance=true to return balance INR 8,500 (below consulate minimum). "
+        "On low_balance_flag=true, escalate via VoiceChase — do NOT fabricate a bank letter."
     )
 )
 async def aa_fetch_bank_data(
     consent_id: str,
     data_range_months: int = 6,
     applicant_id: str = "",
+    simulate_low_balance: bool = False,
 ) -> dict:
     """Mock AA: fetch simulated bank data. Not real AA data."""
-    return MC.aa_fetch_bank_data(consent_id, data_range_months, applicant_id)
+    return MC.aa_fetch_bank_data(consent_id, data_range_months, applicant_id, simulate_low_balance)
 
 
 # ── mcp_raahi_gnani ─────────────────────────────────────────────────────────
@@ -434,7 +437,9 @@ async def aa_fetch_bank_data(
     description=(
         "DEMO/MOCK ONLY. Simulates Gnani speech-to-text transcription. "
         "Returns a fixed demo transcript. No real audio is processed. "
-        "Set simulate_failure=true to test partial-transcript error handling."
+        "Set simulate_failure=true to test partial-transcript error handling. "
+        "Set simulate_malformed=true to return a garbled partial transcript (confidence 0.21). "
+        "On MALFORMED_TRANSCRIPT error, ask the user to repeat — never guess unclear destination, date, or amount."
     )
 )
 async def gnani_transcribe_speech(
@@ -442,9 +447,10 @@ async def gnani_transcribe_speech(
     language_code: str = "en-IN",
     applicant_id: str = "",
     simulate_failure: bool = False,
+    simulate_malformed: bool = False,
 ) -> dict:
     """Mock Gnani STT: returns a fixed demo transcript."""
-    return MC.gnani_transcribe_speech(audio_base64, language_code, applicant_id, simulate_failure)
+    return MC.gnani_transcribe_speech(audio_base64, language_code, applicant_id, simulate_failure, simulate_malformed)
 
 
 @mcp.tool(
@@ -467,7 +473,9 @@ async def gnani_speak_reply(
     description=(
         "DEMO/MOCK ONLY. Simulates placing a Gnani outbound voice call to a bank RM or helpdesk. "
         "No real call is placed. Phone numbers are masked in logs. "
-        "Set simulate_failure=true to simulate an UNWHITELISTED_NUMBER error."
+        "Set simulate_failure=true to simulate an UNWHITELISTED_NUMBER error. "
+        "Set simulate_timeout=true to simulate a call that connected but received no response. "
+        "On CALL_TIMEOUT, do NOT mark the checklist item resolved — retry or escalate to applicant."
     )
 )
 async def gnani_call_bank_rm(
@@ -478,9 +486,10 @@ async def gnani_call_bank_rm(
     checklist_item_id: str = "",
     applicant_id: str = "",
     simulate_failure: bool = False,
+    simulate_timeout: bool = False,
 ) -> dict:
     """Mock Gnani: initiate outbound call to bank. Returns call_id and conversation_id."""
-    return MC.gnani_call_bank_rm(bot_id, phone, country_code, name, checklist_item_id, applicant_id, simulate_failure)
+    return MC.gnani_call_bank_rm(bot_id, phone, country_code, name, checklist_item_id, applicant_id, simulate_failure, simulate_timeout)
 
 
 @mcp.tool(
@@ -713,7 +722,9 @@ async def delhivery_check_serviceability(
         "DEMO/MOCK ONLY. Schedules a mock Delhivery document pickup. "
         "Returns a mock AWB and chain_of_custody_id. "
         "Documents are NEVER marked as DELIVERED without a confirming scan update. "
-        "Set simulate_failure=true to test scheduling failure."
+        "Set simulate_failure=true to test generic scheduling failure. "
+        "Set simulate_no_rider=true to simulate NO_RIDER_AVAILABLE for the requested time slot. "
+        "On NO_RIDER_AVAILABLE, offer an alternate pickup DATE — never change the pickup address."
     )
 )
 async def delhivery_schedule_pickup(
@@ -725,11 +736,12 @@ async def delhivery_schedule_pickup(
     documents: list[str],
     applicant_id: str = "",
     simulate_failure: bool = False,
+    simulate_no_rider: bool = False,
 ) -> dict:
     """Mock Delhivery: schedule a document pickup courier."""
     return MC.delhivery_schedule_pickup(
         pickup_address, drop_address, pickup_pincode, drop_pincode,
-        time_window, documents, applicant_id, simulate_failure,
+        time_window, documents, applicant_id, simulate_failure, simulate_no_rider,
     )
 
 

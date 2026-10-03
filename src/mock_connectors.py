@@ -157,6 +157,7 @@ def aa_fetch_bank_data(
     consent_id: str,
     data_range_months: int = 6,
     applicant_id: str = "",
+    simulate_low_balance: bool = False,
 ) -> dict[str, Any]:
     provider = "banking_aa_mock"
     rec = _store["aa_consents"].get(consent_id)
@@ -167,6 +168,52 @@ def aa_fetch_bank_data(
                      f"Consent status is {rec['status']}. Cannot fetch data.")
 
     session_id = new_id("AA-SESSION-")
+
+    if simulate_low_balance:
+        # Balance below typical consulate minimum (~INR 50,000 for Schengen)
+        # Agent must escalate via VoiceChase, NOT fabricate a bank letter
+        balance = 8500.00
+        monthly_avg_credit = 12000
+        audit("aa_fetch_bank_data", "mock", provider, applicant_id or None, "OK")
+        session = {
+            "session_id": session_id,
+            "consent_id": consent_id,
+            "applicant_id": applicant_id,
+            "created_at": now_iso(),
+            "accounts": [
+                {
+                    "fip": "HDFC Bank (mock)",
+                    "account_type": "SAVINGS",
+                    "masked_account": "****4321",
+                    "balance": balance,
+                    "currency": "INR",
+                }
+            ],
+            "transactions": [
+                {"date": "2026-09-01", "description": "Salary credit", "amount": 12000, "type": "CREDIT"},
+                {"date": "2026-09-15", "description": "Rent", "amount": -8000, "type": "DEBIT"},
+                {"date": "2026-10-01", "description": "Salary credit", "amount": 12000, "type": "CREDIT"},
+            ],
+            "income_signal": {"monthly_avg_credit": monthly_avg_credit, "currency": "INR"},
+            "spend_signal": {"monthly_avg_debit": 8500, "currency": "INR"},
+            "low_balance_flag": True,
+        }
+        _store["aa_sessions"][session_id] = session
+        return _ok(
+            provider,
+            session_id=session_id,
+            consent_id=consent_id,
+            accounts=session["accounts"],
+            transactions=session["transactions"],
+            income_signal=session["income_signal"],
+            spend_signal=session["spend_signal"],
+            low_balance_flag=True,
+            message=(
+                "DEMO/MOCK: Low balance scenario. Balance INR 8,500 is below typical consulate minimum. "
+                "AA data must NOT be used as a bank-issued letter. Escalate via VoiceChase."
+            ),
+        )
+
     session = {
         "session_id": session_id,
         "consent_id": consent_id,
@@ -216,8 +263,19 @@ def gnani_transcribe_speech(
     language_code: str = "en-IN",
     applicant_id: str = "",
     simulate_failure: bool = False,
+    simulate_malformed: bool = False,
 ) -> dict[str, Any]:
     provider = "gnani_stt_mock"
+    if simulate_malformed:
+        # Garbled/partial transcript — agent must ask the user to repeat, not guess
+        audit("gnani_transcribe_speech", "mock", provider, applicant_id or None, "FAILED", "MALFORMED_TRANSCRIPT")
+        return _fail(
+            provider,
+            "MALFORMED_TRANSCRIPT",
+            "Partial or garbled audio received. Returning incomplete transcript; do not guess missing fields.",
+            partial_transcript="...visa... Fran... Novem... [inaudible]...",
+            confidence=0.21,
+        )
     if simulate_failure:
         audit("gnani_transcribe_speech", "mock", provider, applicant_id or None, "FAILED", "STT_ERROR")
         return _fail(provider, "STT_ERROR", "Mock STT partial transcript error.")
@@ -261,8 +319,20 @@ def gnani_call_bank_rm(
     checklist_item_id: str = "",
     applicant_id: str = "",
     simulate_failure: bool = False,
+    simulate_timeout: bool = False,
 ) -> dict[str, Any]:
     provider = "gnani_call_mock"
+    if simulate_timeout:
+        # Call connected but bank RM never responded — agent must not mark item resolved
+        audit("gnani_call_bank_rm", "mock", provider, applicant_id or None, "FAILED", "CALL_TIMEOUT")
+        return _fail(
+            provider,
+            "CALL_TIMEOUT",
+            "Call connected but no response within timeout window. "
+            "Do not mark checklist item resolved. Retry or escalate to applicant.",
+            phone=mask_phone(phone),
+            retry_after_seconds=300,
+        )
     if simulate_failure:
         audit("gnani_call_bank_rm", "mock", provider, applicant_id or None, "FAILED", "UNWHITELISTED_NUMBER")
         return _fail(provider, "UNWHITELISTED_NUMBER",
@@ -699,8 +769,21 @@ def delhivery_schedule_pickup(
     documents: list[str],
     applicant_id: str = "",
     simulate_failure: bool = False,
+    simulate_no_rider: bool = False,
 ) -> dict[str, Any]:
     provider = "delhivery_shipment_mock"
+    if simulate_no_rider:
+        # Rider pool exhausted for the requested time slot — agent must offer alternate date, not alternate address
+        audit("delhivery_schedule_pickup", "mock", provider, applicant_id or None, "FAILED", "NO_RIDER_AVAILABLE")
+        return _fail(
+            provider,
+            "NO_RIDER_AVAILABLE",
+            "No riders available for the requested time window in this pincode. "
+            "Offer applicant an alternate pickup date. Do not change the pickup address.",
+            requested_time_window=time_window,
+            pickup_pincode=pickup_pincode,
+            next_available_slot="Tomorrow 10:00–14:00",
+        )
     if simulate_failure:
         return _fail(provider, "PICKUP_FAILED", "Mock pickup scheduling failure.")
 
