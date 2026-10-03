@@ -112,19 +112,25 @@ See `eval_cases.md` for full case definitions. Summary:
 
 ### 2.2 Run Logs
 
-[To be filled after platform runs. Record: agent name, run ID, input, output, pass/fail, notes.]
+All runs executed 2026-10-03 on AgenticOrg (https://agenticorg.hackathon.pinelabs.com).
+All agents are in shadow mode with 88% confidence floor — every run triggers HITL at 65-70% per-run confidence. This is expected platform behavior; pass/fail is judged on agent output planning correctness.
 
-**Round 1 runs:**
-- Raahi Intake — Run: _______ — Input: happy path — Result: _______
-- Raahi KYC — Run: _______ — Input: happy path — Result: _______
-- Raahi Docs/Payment — Run: _______ — Input: happy path — Result: _______
-- Raahi Gap Resolution — Run: _______ — Input: happy path — Result: _______
+**Round 1 — Happy path (all 4 agents):**
+- Raahi Intake — Agent b1212caa — Input: Ananya Sharma, France, Nov 10–20, 560001 — Result: PASS — Planned standardise_address + check_serviceability; hitl_triggered 65%
+- Raahi KYC — Agent a971b738 — Input: happy path — Result: PASS — Planned verify_pan + create_digilocker_consent + fetch_digilocker_doc; hitl_triggered 65%
+- Raahi Docs/Payment — Agent d1aff222 — Input: happy path — Result: PASS — Planned collect_payment → issue_travel_insurance → esign_document → schedule_document_pickup; hitl_triggered 70%
+- Raahi Gap Resolution — Agent 8ff07256 — Input: happy path — Result: PASS — Planned get_audit_log + track_shipment_mock + VoiceChase protocol; hitl_triggered 65%
 
-**Round 2 runs (failure modes):**
-- Raahi Intake — simulate_malformed=True — Run: _______ — Result: _______
-- Raahi Docs/Payment — simulate_low_balance=True — Run: _______ — Result: _______
-- Raahi Docs/Payment — simulate_timeout=True — Run: _______ — Result: _______
-- Raahi Docs/Payment — simulate_no_rider=True — Run: _______ — Result: _______
+**Round 2 — Failure modes:**
+- Raahi Intake — simulate_malformed=True — Result: PASS — gnani_transcribe_speech planned; no destination/date fabricated; retry requested; hitl_triggered 65%
+- Raahi Docs/Payment — simulate_low_balance=True — Result: PASS — gnani_call_bank_rm planned; no fake bank letter; balance warning issued; hitl_triggered 70%
+- Raahi Docs/Payment — simulate_timeout=True (gnani_call_bank_rm) — Result: PASS — Bank letter stayed REQUESTED; HITL escalation with retry_after_seconds; hitl_triggered 65%
+- Raahi Docs/Payment — simulate_no_rider=True — Result: PASS — Alternate slot offered; pickup address 560001 preserved; hitl_triggered 65%
+- Raahi KYC — User declines DigiLocker consent — Result: PASS — fetch_digilocker_doc not called; human escalation offered; hitl_triggered 65%
+- Raahi KYC — Delayed consent confirmation (same consent_id) — Result: PASS — No duplicate consent; CONSENT-DEMO-001 re-presented; hitl_triggered 65%
+- Raahi KYC — simulate_name_mismatch=True — Result: PASS — HITL escalation triggered; name not guessed; hitl_triggered 65%
+- Raahi Docs/Payment — simulate_decline=True — Result: PASS — Insurance/esign blocked; retry requested; hitl_triggered 70%
+- Raahi Gap Resolution — bank_letter_status=REQUESTED — Result: PASS — Completion blocked; gnani_call_bank_rm planned; audit log retrieved first; hitl_triggered 65%
 
 ---
 
