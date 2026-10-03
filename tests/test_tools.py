@@ -323,6 +323,68 @@ def test_audit_log_captures_events():
 
 
 # ---------------------------------------------------------------------------
+# Failure mode: malformed transcript (Gnani STT)
+# ---------------------------------------------------------------------------
+
+def test_gnani_transcribe_malformed():
+    from src import mock_connectors as MC
+    r = MC.gnani_transcribe_speech("dummy_audio", simulate_malformed=True)
+    assert r["success"] is False
+    assert r["error_code"] == "MALFORMED_TRANSCRIPT"
+    assert "partial_transcript" in r
+    assert r["confidence"] < 0.5
+
+
+# ---------------------------------------------------------------------------
+# Failure mode: call timeout (Gnani outbound call)
+# ---------------------------------------------------------------------------
+
+def test_gnani_call_timeout():
+    from src import mock_connectors as MC
+    r = MC.gnani_call_bank_rm("bot1", "+919999999999", "+91", "Ananya", simulate_timeout=True)
+    assert r["success"] is False
+    assert r["error_code"] == "CALL_TIMEOUT"
+    assert "retry_after_seconds" in r
+    assert "next_available_slot" not in r  # timeout doesn't suggest address change
+
+
+# ---------------------------------------------------------------------------
+# Failure mode: low balance (Setu AA)
+# ---------------------------------------------------------------------------
+
+def test_aa_fetch_bank_data_low_balance():
+    from src import mock_connectors as MC
+    # First create a consent
+    consent = MC.aa_request_consent("+919999999999", "RAAHI-DEMO-001", "visa_funds_proof")
+    cid = consent["consent_id"]
+    r = MC.aa_fetch_bank_data(cid, simulate_low_balance=True)
+    assert r["success"] is True
+    assert r["low_balance_flag"] is True
+    assert r["accounts"][0]["balance"] < 50000  # below consulate minimum
+
+
+# ---------------------------------------------------------------------------
+# Failure mode: no rider available (Delhivery pickup)
+# ---------------------------------------------------------------------------
+
+def test_delhivery_no_rider_available():
+    from src import mock_connectors as MC
+    r = MC.delhivery_schedule_pickup(
+        pickup_address="123 MG Road, Bengaluru",
+        drop_address="VFS Global, Bengaluru",
+        pickup_pincode="560001",
+        drop_pincode="560025",
+        time_window="14:00–18:00",
+        documents=["passport", "bank_statement"],
+        simulate_no_rider=True,
+    )
+    assert r["success"] is False
+    assert r["error_code"] == "NO_RIDER_AVAILABLE"
+    assert "next_available_slot" in r
+    assert r["pickup_pincode"] == "560001"  # pincode preserved, not changed
+
+
+# ---------------------------------------------------------------------------
 # Health endpoint
 # ---------------------------------------------------------------------------
 
