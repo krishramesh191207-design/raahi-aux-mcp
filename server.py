@@ -349,6 +349,7 @@ def build_app() -> Starlette:
         stateless_http=True,
         json_response=True,
         transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=False,
             allowed_hosts=[
                 "raahi-auxiliary-mcp.onrender.com",
                 "localhost:*",
