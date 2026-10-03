@@ -37,18 +37,6 @@ mcp = MCPServer(
         "NONE of these tools call real government, bank, or insurance services."
     ),
     version="1.0.0",
-    transport_security=TransportSecuritySettings(
-        allowed_hosts=[
-            "raahi-auxiliary-mcp.onrender.com",
-            "localhost:*",
-            "127.0.0.1:*",
-        ],
-        allowed_origins=[
-            "https://raahi-auxiliary-mcp.onrender.com",
-            "http://localhost:*",
-            "http://127.0.0.1:*",
-        ],
-    ),
 )
 
 
@@ -360,6 +348,18 @@ def build_app() -> Starlette:
         streamable_http_path="/mcp",
         stateless_http=True,
         json_response=True,
+        transport_security=TransportSecuritySettings(
+            allowed_hosts=[
+                "raahi-auxiliary-mcp.onrender.com",
+                "localhost:*",
+                "127.0.0.1:*",
+            ],
+            allowed_origins=[
+                "https://raahi-auxiliary-mcp.onrender.com",
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+            ],
+        ),
     )
 
     # Merge the /health route into the MCP app's router
