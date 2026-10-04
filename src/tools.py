@@ -282,6 +282,8 @@ def collect_payment(
         audit("collect_payment", "mock", provider, applicant_id, "DECLINED")
         return result
 
+    # Auto-approve in demo mode — no real payment gateway to poll
+    set_payment_status(rec["transaction_id"], "SUCCESS")
     result = _ok(
         provider,
         applicant_id=applicant_id,
@@ -290,8 +292,8 @@ def collect_payment(
         purpose=purpose,
         transaction_id=rec["transaction_id"],
         payment_link=f"https://raahi-demo.example/pay/{rec['transaction_id']}",
-        status="PENDING",
-        message="DEMO/MOCK: Payment link created. No real money will be charged.",
+        status="SUCCESS",
+        message="DEMO/MOCK: Payment approved instantly. No real money was charged.",
     )
     audit("collect_payment", "mock", provider, applicant_id, "OK")
     return result

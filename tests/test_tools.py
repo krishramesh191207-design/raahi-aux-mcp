@@ -149,7 +149,7 @@ def test_esign_otp_failure():
 def test_collect_payment_ok():
     r = collect_payment(4999, DEMO_APPLICANT_ID, "Visa fee")
     assert r["success"] is True
-    assert r["status"] == "PENDING"
+    assert r["status"] == "SUCCESS"
     assert r["amount"] == 4999
     assert "transaction_id" in r
 
